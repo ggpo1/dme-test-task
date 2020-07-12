@@ -13,6 +13,7 @@ function reducer(state = { data: {} }, action) {
 }
 //dispatch callback function
 function dispatchCallback() {
+    // filling table
     $('#table').html('');
     let airplanes = store.getState().data;
     airplanes.sort((a, b) => a.rangeToDME - b.rangeToDME);
