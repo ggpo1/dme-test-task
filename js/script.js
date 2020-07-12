@@ -4,20 +4,30 @@ const DME_COORDS = [55.410307, 37.902451];
 const KNOT_COEFFICIENT = 1.852;
 const FOOT_COEFFICIENT = 0.3048;
 const fillAction = (data) => { return { type: 'FILL', data } };
+const changeCssModeAction = (mode) => { return { type: 'CHANGE_CSS_MODE', mode } }
+const changeSortModeAction = (mode) => { return { type: 'CHANGE_SORT_MODE', mode } }
 
-function reducer(state = { data: {} }, action) {
+function reducer(state, action) {
     switch (action.type) {
         case 'FILL':
-            return { data: action.data };
+            return {...state, ... { data: action.data } };
+        case 'CHANGE_CSS_MODE':
+            return {...state, ... { cssMode: action.mode } };
+        case 'CHANGE_SORT_MODE':
+            return {...state, ... { sortMode: action.mode } }
     }
 }
 //dispatch callback function
 function dispatchCallback() {
     // filling table
+    let stylesButton = document.getElementById('stylesButton');
+    stylesButton.innerText = store.getState().cssMode ? 'включить стили' : 'отключить стили';
+
     let table = document.getElementById('table');
     table.innerHTML = '';
     let airplanes = store.getState().data;
     airplanes.sort((a, b) => a.rangeToDME - b.rangeToDME);
+    store.getState().sortMode && airplanes.reverse(); // sorting changing
     airplanes.forEach(ap => {
         const row = document.createElement('div');
         row.className = 'row';
@@ -57,7 +67,17 @@ function converter(key, dataObj) {
     }
 }
 
+function stylesButtonAction() {
+    let table = document.getElementById('table');
 
+    table.className = store.getState().cssMode ? 'table' : '';
+
+    store.dispatch(changeCssModeAction(!store.getState().cssMode));
+}
+
+function sortModeButtonAction() {
+    store.dispatch(changeSortModeAction(!store.getState().sortMode));
+}
 
 fetch(API_ROUTE, {
     method: 'GET',
@@ -81,5 +101,5 @@ setInterval(
             store.dispatch(fillAction(airplanes));
         });
     },
-    2000
+    3000
 );
