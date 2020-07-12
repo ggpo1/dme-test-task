@@ -1,4 +1,4 @@
-let initialState = { data: {} };
+let initialState = { data: {}, sortMode: false, cssMode: true };
 const API_ROUTE = 'https://data-live.flightradar24.com/zones/fcgi/feed.js?bounds=56.84,55.27,33.48,41.48';
 const DME_COORDS = [55.410307, 37.902451];
 const KNOT_COEFFICIENT = 1.852;
@@ -14,7 +14,8 @@ function reducer(state = { data: {} }, action) {
 //dispatch callback function
 function dispatchCallback() {
     // filling table
-    $('#table').html('');
+    let table = document.getElementById('table');
+    table.innerHTML = '';
     let airplanes = store.getState().data;
     airplanes.sort((a, b) => a.rangeToDME - b.rangeToDME);
     airplanes.forEach(ap => {
@@ -26,7 +27,7 @@ function dispatchCallback() {
             cell.innerText = ap[key];
             row.appendChild(cell);
         });
-        $('#table').append(row);
+        table.appendChild(row);
     });
 }
 
@@ -57,30 +58,28 @@ function converter(key, dataObj) {
 }
 
 
-$(document).ready(() => {
-    $.getJSON(
-        API_ROUTE,
-        (data) => {
-            let airplanes = [];
-            Object.keys(data)
-                .filter(key => typeof data[key] === "object")
-                .forEach(key => airplanes.push(converter(key, data[key])));
-            store.dispatch(fillAction(airplanes));
-        }
-    );
-    setInterval(
-        () => {
-            $.getJSON(
-                API_ROUTE,
-                (data) => {
-                    let airplanes = [];
-                    Object.keys(data)
-                        .filter(key => typeof data[key] === "object")
-                        .forEach(key => airplanes.push(converter(key, data[key])));
-                    store.dispatch(fillAction(airplanes));
-                }
-            )
-        },
-        2000
-    );
+
+fetch(API_ROUTE, {
+    method: 'GET',
+}).then((response) => response.json()).then((body) => {
+    let airplanes = [];
+    Object.keys(body)
+        .filter(key => typeof body[key] === "object")
+        .forEach(key => airplanes.push(converter(key, body[key])));
+    store.dispatch(fillAction(airplanes));
 });
+
+setInterval(
+    () => {
+        fetch(API_ROUTE, {
+            method: 'GET',
+        }).then((response) => response.json()).then((body) => {
+            let airplanes = [];
+            Object.keys(body)
+                .filter(key => typeof body[key] === "object")
+                .forEach(key => airplanes.push(converter(key, body[key])));
+            store.dispatch(fillAction(airplanes));
+        });
+    },
+    2000
+);
