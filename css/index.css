@@ -61,6 +61,7 @@ html {
     height: auto;
     font-size: 10pt;
     padding: 10px 0;
+    cursor: pointer;
 }
 
 .row:not(:first-child) {

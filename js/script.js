@@ -1,11 +1,22 @@
-let initialState = { data: {}, sortMode: false, cssMode: true };
 const API_ROUTE = 'https://data-live.flightradar24.com/zones/fcgi/feed.js?bounds=56.84,55.27,33.48,41.48';
 const DME_COORDS = [55.410307, 37.902451];
 const KNOT_COEFFICIENT = 1.852;
 const FOOT_COEFFICIENT = 0.3048;
 const fillAction = (data) => { return { type: 'FILL', data } };
-const changeCssModeAction = (mode) => { return { type: 'CHANGE_CSS_MODE', mode } }
-const changeSortModeAction = (mode) => { return { type: 'CHANGE_SORT_MODE', mode } }
+const changeCssModeAction = (mode) => { return { type: 'CHANGE_CSS_MODE', mode } };
+const changeSortModeAction = (mode) => { return { type: 'CHANGE_SORT_MODE', mode } };
+const addOpacityRowAction = (rowNum) => { return { type: 'ADD_OPACITY_ROW', rowNum } };
+const removeOpacityRowAction = (rowNum) => { return { type: 'REMOVE_OPACITY_ROW', rowNum } };
+
+if (localStorage.selectedRows === undefined) localStorage.selectedRows = JSON.stringify([]);
+
+let initialState = {
+    data: {},
+    sortMode: false,
+    cssMode: false,
+    selectedRows: JSON.parse(localStorage.selectedRows)
+};
+
 
 function reducer(state, action) {
     switch (action.type) {
@@ -14,12 +25,26 @@ function reducer(state, action) {
         case 'CHANGE_CSS_MODE':
             return {...state, ... { cssMode: action.mode } };
         case 'CHANGE_SORT_MODE':
-            return {...state, ... { sortMode: action.mode } }
+            return {...state, ... { sortMode: action.mode } };
+        case 'ADD_OPACITY_ROW':
+            {
+                let sR = store.getState().selectedRows;
+                sR.push(action.rowNum);
+                localStorage.selectedRows = JSON.stringify(sR); // saving selected rows to the localStorage
+                return {...state, ... { selectedRows: sR } };
+            };
+        case 'REMOVE_OPACITY_ROW':
+            {
+                let sR = store.getState().selectedRows.filter(row => row !== action.rowNum);
+                localStorage.selectedRows = JSON.stringify(sR); // saving selected rows to the localStorage
+                return {...state, ... { selectedRows: sR } };
+            }
     }
 }
 //dispatch callback function
 function dispatchCallback() {
     // filling table
+    // console.log(store.getState());
     let stylesButton = document.getElementById('stylesButton');
     stylesButton.innerText = store.getState().cssMode ? 'включить стили' : 'отключить стили';
 
@@ -28,9 +53,19 @@ function dispatchCallback() {
     let airplanes = store.getState().data;
     airplanes.sort((a, b) => a.rangeToDME - b.rangeToDME);
     store.getState().sortMode && airplanes.reverse(); // sorting changing
-    airplanes.forEach(ap => {
+    airplanes.forEach((ap, i) => {
         const row = document.createElement('div');
         row.className = 'row';
+
+        row.addEventListener('click', () => {
+            if (store.getState().selectedRows.includes(i))
+                store.dispatch(removeOpacityRowAction(i))
+            else
+                store.dispatch(addOpacityRowAction(i))
+
+        }); // row selecting event
+        store.getState().selectedRows.includes(i) && (row.style = 'opacity: 0.2') // includes check
+
         Object.keys(ap).forEach(key => {
             const cell = document.createElement('div');
             cell.className = 'cell';
@@ -91,6 +126,7 @@ fetch(API_ROUTE, {
 
 setInterval(
     () => {
+        console.log(store.getState());
         fetch(API_ROUTE, {
             method: 'GET',
         }).then((response) => response.json()).then((body) => {
